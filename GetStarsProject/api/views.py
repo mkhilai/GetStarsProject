@@ -21,6 +21,14 @@ class GetReposList(generics.ListAPIView):
 		return parse_data
 
 	def list(self, request, *args, **kwargs):
+		repos_limit = None
+		search_word = None
+
+		if 'limit' in self.request.query_params:
+			repos_limit = int(self.request.query_params.get('limit'))
+
+		if 'search_word' in self.request.query_params:
+			search_word = self.request.query_params.get('search_word')
 
 		main_page = self.get_parsed_data("https://github.com/trending")
 
@@ -29,10 +37,17 @@ class GetReposList(generics.ListAPIView):
 			final_result = None
 
 			trending_links = []
+			count = 0
 			for li in main_page.findAll('div', attrs={'class': re.compile("d-inline-block col-9 mb-1")}):
 				for div in li.findAll('h3'):
 					for a in div.findAll('a'):
 						trending_links.append(a.get('href'))
+						count = count + 1
+				if repos_limit and count == repos_limit:
+					break
+
+			if search_word:
+				trending_links = [item for item in trending_links if search_word in item]
 
 			result = []
 			for index in range(len(trending_links)):
