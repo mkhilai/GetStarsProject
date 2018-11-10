@@ -25,14 +25,27 @@ class GetReposList(generics.ListAPIView):
 		main_page = self.get_parsed_data("https://github.com/trending")
 
 		if main_page:
-			
+
+			final_result = None
+
 			trending_links = []
 			for li in main_page.findAll('div', attrs={'class': re.compile("d-inline-block col-9 mb-1")}):
 				for div in li.findAll('h3'):
 					for a in div.findAll('a'):
-						trending_links.append("https://github.com/" + a.get('href'))
+						trending_links.append(a.get('href'))
 
-			return Response(trending_links, status=status.HTTP_200_OK)
+			result = []
+			for index in range(len(trending_links)):
+				temp_repo = self.get_parsed_data("https://github.com/" + trending_links[index])
+				result.append(
+					{
+						"title": [item.string for item in temp_repo.find('title')],
+						"stars": [a.get('aria-label') for a in temp_repo.findAll('a', attrs={'href': re.compile(trending_links[index] + "/stargazers")})],
+						"watchers": [a.get('aria-label') for a in temp_repo.findAll('a', attrs={'href': re.compile(trending_links[index] + "/watchers")})]
+					}
+				)
+
+			return Response(result, status=status.HTTP_200_OK)
 
 		return Response(status=status.HTTP_400_BAD_RQUEST)
 
